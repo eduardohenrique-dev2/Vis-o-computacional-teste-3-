@@ -1,11 +1,19 @@
 import customtkinter as ctk
 import cv2
 from PIL import Image, ImageTk
-from ultralytics import YOLO
+from typing import Any
 
-# ==========================
-# CONFIGURAÇÃO DA INTERFACE
-# ==========================
+from detector import Detector
+
+# =====================================================
+# DETECTOR
+# =====================================================
+
+detector = Detector()
+
+# =====================================================
+# INTERFACE
+# =====================================================
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -14,15 +22,9 @@ app = ctk.CTk()
 app.title("Sistema Inteligente de Monitoramento")
 app.geometry("1200x760")
 
-# ==========================
-# CARREGA O YOLO
-# ==========================
-
-modelo = YOLO("yolov8n.pt")
-
-# ==========================
+# =====================================================
 # TÍTULO
-# ==========================
+# =====================================================
 
 titulo = ctk.CTkLabel(
     app,
@@ -32,20 +34,16 @@ titulo = ctk.CTkLabel(
 
 titulo.pack(pady=15)
 
-# ==========================
+# =====================================================
 # VÍDEO
-# ==========================
+# =====================================================
 
 video = ctk.CTkLabel(app, text="")
 video.pack()
 
-# ==========================
+# =====================================================
 # PAINEL DE INFORMAÇÕES
-# ==========================
-
-# ==========================
-# PAINEL DE INFORMAÇÕES
-# ==========================
+# =====================================================
 
 painel = ctk.CTkFrame(app, fg_color="transparent")
 painel.pack(fill="x", padx=20, pady=15)
@@ -140,66 +138,112 @@ lbl_status = ctk.CTkLabel(
 
 lbl_status.pack()
 
-# ==========================
-# CÂMERA
-# ==========================
+# =====================================================
+# CÂMERA (tenta múltiplas fontes: ids 0-3, depois arquivo local)
+# =====================================================
 
-camera = cv2.VideoCapture(0)
+def open_camera_fallback() -> tuple:
+    # tenta IDs de 0 a 3
+    for cam_id in range(4):
+        cap = cv2.VideoCapture(cam_id)
+        if cap.isOpened():
+            return cap, True
+        else:
+            try:
+                cap.release()
+            except Exception:
+                pass
 
-# ==========================
-# FUNÇÃO ATUALIZAR
-# ==========================
+    # tenta arquivo de vídeo local comum
+    import os
+    for candidate in ("video.mp4", "sample.mp4", "camera.mp4"):
+        if os.path.exists(candidate):
+            cap = cv2.VideoCapture(candidate)
+            if cap.isOpened():
+                return cap, True
+
+    return None, False
+
+
+camera, CAMERA_AVAILABLE = open_camera_fallback()
+CAMERA_FAILURES = 0
+
+# =====================================================
+# ATUALIZAÇÃO
+# =====================================================
 
 def atualizar():
+    global CAMERA_AVAILABLE
+    global CAMERA_FAILURES
+
+    if not CAMERA_AVAILABLE or camera is None:
+        lbl_status.configure(text="🔴 Offline", text_color="#FF0000")
+        app.after(1000, atualizar)
+        return
 
     ok, frame = camera.read()
 
-    if ok:
-
-        resultado = modelo(frame)
-
-        frame_anotado = resultado[0].plot()
-
-        pessoas = 0
-        objetos = 0
-
-        for deteccao in resultado[0].boxes:
-            classe = int(deteccao.cls)
-            nome_classe = modelo.names[classe]
-
-            if nome_classe == "Pessoa":
-                pessoas += 1
-            else:
-                objetos += 1
-
-        lbl_pessoas.configure(text=str(pessoas))
-        lbl_objetos.configure(text=str(objetos))
-
-        frame_anotado = cv2.cvtColor(frame_anotado, cv2.COLOR_BGR2RGB)
-
-        imagem = Image.fromarray(frame_anotado)
-        imagem = imagem.resize((1100, 600))
-
-        foto = ImageTk.PhotoImage(imagem)
-
-        video.configure(image=foto)
-        video.image = foto
-
-        lbl_status.configure(text="🟢 Online", text_color="#00FF00")
-
-    else:
-
+    global CAMERA_FAILURES
+    if not ok or frame is None:
+        CAMERA_FAILURES += 1
+        if CAMERA_FAILURES >= 5:
+            # desabilita câmera para evitar flood de warnings
+            try:
+                camera.release()
+            except Exception:
+                pass
+            CAMERA_AVAILABLE = False
+            lbl_status.configure(text="🔴 Offline", text_color="#FF0000")
+            app.after(1000, atualizar)
+            return
         lbl_status.configure(text="🔴 Offline", text_color="#FF0000")
+        app.after(1000, atualizar)
+        return
+
+    CAMERA_FAILURES = 0
+
+    resultado = detector.detectar(frame)
+
+    frame: Any = resultado["frame"]
+
+    pessoas = resultado["pessoas"]
+
+    objetos = resultado["objetos"]
+
+    lbl_pessoas.configure(text=str(pessoas))
+
+    lbl_objetos.configure(text=str(objetos))
+
+    lbl_status.configure(
+        text="🟢 Online",
+        text_color="#00FF00"
+    )
+
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # type: ignore
+
+    imagem = Image.fromarray(frame)  # type: ignore
+
+    imagem = imagem.resize((1100,600))
+
+    foto = ImageTk.PhotoImage(imagem)
+
+    video.configure(image=foto)
+
+    video.image = foto
 
     app.after(10, atualizar)
 
-# ==========================
+# =====================================================
 # FECHAR
-# ==========================
+# =====================================================
 
 def fechar():
 
-    camera.release()
+    if camera is not None:
+        try:
+            camera.release()
+        except Exception:
+            pass
 
     cv2.destroyAllWindows()
 
@@ -207,9 +251,9 @@ def fechar():
 
 app.protocol("WM_DELETE_WINDOW", fechar)
 
-# ==========================
-# INICIA
-# ==========================
+# =====================================================
+# INICIAR
+# =====================================================
 
 atualizar()
 

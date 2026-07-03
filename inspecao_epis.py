@@ -1,6 +1,32 @@
 
 
-from tradutor import EPIS_OBRIGATORIOS, traduzir
+from typing import Any, Dict, List, TypedDict, Tuple, cast
+
+EPIS_OBRIGATORIOS: Dict[str, List[str]] = cast(Dict[str, List[str]], __import__("tradutor").EPIS_OBRIGATORIOS)
+
+
+class ObjectDetected(TypedDict):
+    classe: str
+    x1: int
+    y1: int
+    x2: int
+    y2: int
+    confianca: float
+
+
+class AggregatedEPIInfo(TypedDict):
+    detectado: bool
+    confianca: float
+    classe: str
+
+
+class AnalysisResult(TypedDict):
+    total_pessoas: int
+    epis_disponiveis: Dict[str, bool]
+    pessoas_conformes: int
+    pessoas_nao_conformes: int
+    status_geral: str
+    detalhes: List[Dict[str, Any]]
 
 
 class InspecaoEPIs:
@@ -15,18 +41,19 @@ class InspecaoEPIs:
     5. Retorna relatório detalhado
     """
 
-    def __init__(self, modelo):
+    def __init__(self, modelo: Any) -> None:
         """
         Inicializa o inspector de EPIs.
         
         Args:
             modelo: Objeto YOLO com .names (dict de classes)
         """
-        self.modelo = modelo
-        self.epis_disponiveis = self._detectar_epis_disponiveis()
+        self.modelo: Any = modelo
+        self.epis_disponiveis: Dict[str, bool] = self._detectar_epis_disponiveis()
+        self.mapa_reverso: Dict[str, str] = {}
         self._criar_mapa_reverso()
 
-    def _criar_mapa_reverso(self):
+    def _criar_mapa_reverso(self) -> None:
         """
         Cria um dicionário que mapeia nome traduzido -> nome original.
         
@@ -41,7 +68,7 @@ class InspecaoEPIs:
         for nome_original, nome_traduzido in CLASSES_PT.items():
             self.mapa_reverso[nome_traduzido] = nome_original
 
-    def _detectar_epis_disponiveis(self):
+    def _detectar_epis_disponiveis(self) -> Dict[str, bool]:
         """
         Verifica quais EPIs o modelo consegue detectar.
         
@@ -52,8 +79,8 @@ class InspecaoEPIs:
             ...
         }
         """
-        epis = {}
-        nomes_modelo = [nome.lower() for nome in self.modelo.names.values()]
+        epis: Dict[str, bool] = {}
+        nomes_modelo: List[str] = [nome.lower() for nome in self.modelo.names.values()]
         
         for categoria_epi, nomes_epi in EPIS_OBRIGATORIOS.items():
             # Verifica se algum nome de EPI dessa categoria existe no modelo
@@ -64,7 +91,7 @@ class InspecaoEPIs:
         
         return epis
 
-    def analisar(self, lista_objetos):
+    def analisar(self, lista_objetos: List[Dict[str, Any]]) -> AnalysisResult:
         """
         Analisa objetos detectados para conformidade de EPIs.
         
@@ -78,8 +105,8 @@ class InspecaoEPIs:
             dict com análise de EPIs
         """
         # Separa pessoas e EPIs
-        pessoas = []
-        epis_detectados = []
+        pessoas: List[Dict[str, Any]] = []
+        epis_detectados: List[Dict[str, Any]] = []
         
         for obj in lista_objetos:
             classe_original = self._obter_classe_original(obj['classe'])
@@ -90,7 +117,7 @@ class InspecaoEPIs:
                 epis_detectados.append(obj)
         
         # Analisa conformidade
-        resultado = {
+        resultado: AnalysisResult = {
             "total_pessoas": len(pessoas),
             "epis_disponiveis": self.epis_disponiveis,
             "pessoas_conformes": 0,
@@ -116,7 +143,7 @@ class InspecaoEPIs:
         
         return resultado
 
-    def _analisar_pessoa(self, pessoa, epis_detectados, indice):
+    def _analisar_pessoa(self, pessoa: Dict[str, Any], epis_detectados: List[Dict[str, Any]], indice: int) -> Dict[str, Any]:
         """
         Analisa EPIs de uma pessoa específica.
         
@@ -151,7 +178,7 @@ class InspecaoEPIs:
             "status": "Conforme" if conforme else "Nao Conforme"
         }
 
-    def _encontrar_epis_proximos(self, pessoa, epis_detectados):
+    def _encontrar_epis_proximos(self, pessoa: Dict[str, Any], epis_detectados: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Encontra EPIs que estão próximos à pessoa (mesma região).
         
@@ -171,10 +198,10 @@ class InspecaoEPIs:
         # Raio de proximidade (1.5x altura da pessoa)
         raio = int(p_altura * 1.5)
         
-        epis_proximos = []
+        epis_proximos: List[Dict[str, Any]] = []
         
         for epi in epis_detectados:
-            e_x1, e_y1, e_x2, e_y2 = (
+            e_x1, _e_y1, e_x2, _e_y2 = (
                 epi["x1"],
                 epi["y1"],
                 epi["x2"],
@@ -190,7 +217,7 @@ class InspecaoEPIs:
         
         return epis_proximos
 
-    def _agrupar_epis(self, epis_proximidad):
+    def _agrupar_epis(self, epis_proximidad: List[Dict[str, Any]]) -> Dict[str, AggregatedEPIInfo]:
         """
         Agrupa EPIs encontrados por categoria.
         
@@ -200,7 +227,7 @@ class InspecaoEPIs:
             "colete": {"detectado": False, "confianca": 0.0}
         }
         """
-        agrupado = {}
+        agrupado: Dict[str, AggregatedEPIInfo] = {}
         
         # Inicializa com False
         for categoria in EPIS_OBRIGATORIOS.keys():
@@ -228,20 +255,20 @@ class InspecaoEPIs:
         
         return agrupado
 
-    def _verificar_conformidade(self, epis_agrupados):
+    def _verificar_conformidade(self, epis_agrupados: Dict[str, AggregatedEPIInfo]) -> Tuple[bool, List[str]]:
         """
         Verifica se a pessoa está conforme com EPIs obrigatórios.
         
         Retorna:
             (conforme: bool, faltantes: list)
         """
-        faltantes = []
+        faltantes: List[str] = []
         
         for categoria, info in epis_agrupados.items():
             # Se o EPI não é detectável no modelo, ignora
-            if not self.epis_disponiveis[categoria]:
+            if not self.epis_disponiveis.get(categoria, False):
                 continue
-            
+
             # Se o EPI é detectável mas não foi encontrado
             if not info['detectado']:
                 faltantes.append(categoria)
@@ -250,14 +277,14 @@ class InspecaoEPIs:
         
         return conforme, faltantes
 
-    def _eh_epi(self, nome_classe):
+    def _eh_epi(self, nome_classe: str) -> bool:
         """Verifica se uma classe é um EPI obrigatório."""
         for nomes_epi in EPIS_OBRIGATORIOS.values():
             if nome_classe in nomes_epi:
                 return True
         return False
 
-    def _obter_classe_original(self, classe_traduzida):
+    def _obter_classe_original(self, classe_traduzida: str) -> str:
         """
         Retorna o nome original da classe a partir do traduzido.
         
@@ -270,7 +297,7 @@ class InspecaoEPIs:
         # Fallback: tenta minúscula
         return classe_traduzida.lower()
 
-    def gerar_texto_status(self, resultado):
+    def gerar_texto_status(self, resultado: Dict[str, Any]) -> str:
         """
         Gera texto formatado do status geral.
         
@@ -288,7 +315,7 @@ class InspecaoEPIs:
         
         return f"[!] {conformes}/{total} Conforme"
 
-    def gerar_relatorio_pessoa(self, detalhes_pessoa):
+    def gerar_relatorio_pessoa(self, detalhes_pessoa: Dict[str, Any]) -> str:
         """
         Gera relatório textual de uma pessoa específica.
         
@@ -300,8 +327,8 @@ class InspecaoEPIs:
         epis = detalhes_pessoa['epis_detectados']
         
         # Lista EPIs encontrados
-        encontrados = []
-        for categoria, info in epis.items():
+        encontrados: List[str] = []
+        for info in epis.values():
             if info['detectado']:
                 encontrados.append(f"  [+] {info['classe']}")
         

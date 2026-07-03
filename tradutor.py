@@ -1,61 +1,68 @@
 """
 ==========================================================
-TRADUTOR DE CLASSES YOLO (COCO) PARA PORTUGUÊS
-==========================================================
+TRADUTOR.PY
 
-Responsável por traduzir automaticamente os nomes das
-classes detectadas pelo YOLO.
-
-Exemplo:
-
-person  -> Pessoa
-bottle  -> Garrafa
-car     -> Carro
+Traduz automaticamente as classes do YOLO para português.
 
 ==========================================================
 """
 
 CLASSES_PT = {
 
-    "pessoa": "Pessoa",
-    "bicicleta": "Bicicleta",
-    "carro": "Carro",
-    "motocicleta": "Motocicleta",
-    "avião": "Avião",
-    "ônibus": "Ônibus",
-    "trem": "Trem",
-    "caminhão": "Caminhão",
-    "barco": "Barco",
-    "semáforo": "Semáforo",
-    "hidrante": "Hidrante",
-    "placa de pare": "Placa de Pare",
-    "parquímetro": "Parquímetro",
-    "banco": "Banco",
-    "pássaro": "Pássaro",
-    "gato": "Gato",
-    "cachorro": "Cachorro",
-    "cavalo": "Cavalo",
-    "ovelha": "Ovelha",
-    "vaca": "Vaca",
-    "elefante": "Elefante",
-    "urso": "Urso",
+    # Pessoas
+    "person": "Pessoa",
+
+    # Veículos
+    "bicycle": "Bicicleta",
+    "car": "Carro",
+    "motorcycle": "Motocicleta",
+    "airplane": "Avião",
+    "bus": "Ônibus",
+    "train": "Trem",
+    "truck": "Caminhão",
+    "boat": "Barco",
+
+    # Trânsito
+    "traffic light": "Semáforo",
+    "fire hydrant": "Hidrante",
+    "stop sign": "Placa de Pare",
+    "parking meter": "Parquímetro",
+
+    # Objetos urbanos
+    "bench": "Banco",
+
+    # Animais
+    "bird": "Pássaro",
+    "cat": "Gato",
+    "dog": "Cachorro",
+    "horse": "Cavalo",
+    "sheep": "Ovelha",
+    "cow": "Vaca",
+    "elephant": "Elefante",
+    "bear": "Urso",
     "zebra": "Zebra",
-    "girafa": "Girafa",
-    "mochila": "Mochila",
-    "guarda-chuva": "Guarda-chuva",
-    "bolsa": "Bolsa",
-    "gravata": "Gravata",
-    "mala": "Mala",
+    "giraffe": "Girafa",
+
+    # Acessórios
+    "backpack": "Mochila",
+    "umbrella": "Guarda-chuva",
+    "handbag": "Bolsa",
+    "tie": "Gravata",
+    "suitcase": "Mala",
+
+    # Esportes
     "frisbee": "Frisbee",
-    "esquis": "Esquis",
+    "skis": "Esquis",
     "snowboard": "Snowboard",
     "sports ball": "Bola",
     "kite": "Pipa",
     "baseball bat": "Taco",
-    "baseball glove": "Luva",
+    "baseball glove": "Luva de Beisebol",
     "skateboard": "Skate",
     "surfboard": "Prancha",
     "tennis racket": "Raquete",
+
+    # Cozinha
     "bottle": "Garrafa",
     "wine glass": "Taça",
     "cup": "Copo",
@@ -63,6 +70,8 @@ CLASSES_PT = {
     "knife": "Faca",
     "spoon": "Colher",
     "bowl": "Tigela",
+
+    # Alimentos
     "banana": "Banana",
     "apple": "Maçã",
     "sandwich": "Sanduíche",
@@ -73,12 +82,16 @@ CLASSES_PT = {
     "pizza": "Pizza",
     "donut": "Rosquinha",
     "cake": "Bolo",
+
+    # Móveis
     "chair": "Cadeira",
     "couch": "Sofá",
     "potted plant": "Planta",
     "bed": "Cama",
     "dining table": "Mesa",
     "toilet": "Vaso Sanitário",
+
+    # Eletrônicos
     "tv": "Televisão",
     "laptop": "Notebook",
     "mouse": "Mouse",
@@ -90,6 +103,8 @@ CLASSES_PT = {
     "toaster": "Torradeira",
     "sink": "Pia",
     "refrigerator": "Geladeira",
+
+    # Diversos
     "book": "Livro",
     "clock": "Relógio",
     "vase": "Vaso",
@@ -97,11 +112,11 @@ CLASSES_PT = {
     "teddy bear": "Urso de Pelúcia",
     "hair drier": "Secador",
     "toothbrush": "Escova de Dentes",
-    
-    # ==============================================
-    # EQUIPAMENTOS DE PROTEÇÃO INDIVIDUAL (EPIs)
-    # ==============================================
-    
+
+    # ===========================
+    # EPIs
+    # ===========================
+
     "helmet": "Capacete",
     "hardhat": "Capacete",
     "vest": "Colete",
@@ -116,12 +131,8 @@ CLASSES_PT = {
     "ear protection": "Protetor Auricular",
     "boots": "Botas",
     "safety shoes": "Botas de Segurança"
-
 }
 
-# ==============================================
-# EPIs OBRIGATÓRIOS (para análise)
-# ==============================================
 
 EPIS_OBRIGATORIOS = {
     "capacete": ["helmet", "hardhat"],
@@ -129,17 +140,16 @@ EPIS_OBRIGATORIOS = {
     "mascara": ["mask", "face mask"],
     "luvas": ["gloves"],
     "oculos": ["goggles", "glasses"],
-    "protetor_auricular": ["earmuffs", "ear protection", "headset"],
+    "protetor_auricular": ["earmuffs", "headset", "ear protection"],
     "botas": ["boots", "safety shoes"]
 }
 
 
 def traduzir(nome_classe: str) -> str:
     """
-    Traduz o nome da classe para português.
-
-    Caso a classe não exista no dicionário,
-    retorna o próprio nome recebido.
+    Traduz o nome retornado pelo YOLO.
     """
+
+    nome_classe = nome_classe.lower().strip()
 
     return CLASSES_PT.get(nome_classe, nome_classe)

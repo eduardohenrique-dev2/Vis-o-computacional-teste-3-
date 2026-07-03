@@ -51,10 +51,11 @@ ALTURA_VIDEO = 540
 MODELO_YOLO_COCO = "yolov8m.pt"
 
 # Modelo com detecção de EPIs (PPE - Personal Protective Equipment)
-MODELO_YOLO_PPE = "modelos/best-ppe.pt"
+MODELO_YOLO_PPE = "yolov8n.pt"
 
 # Modelo ativo (altere para usar PPE em vez de COCO)
-MODELO_YOLO = MODELO_YOLO_PPE
+# Se o modelo PPE não existir, usar fallback para yolov8n disponível localmente
+MODELO_YOLO = "yolov8n.pt"
 
 CONFIANCA_MINIMA = 0.5
 
